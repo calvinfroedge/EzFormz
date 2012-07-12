@@ -43,7 +43,7 @@ class EzFormz
 			$instance = self::$_instances[] = new self;
 		}
 
-		return new self;
+		return $instance;
 	}
 
 	public function open($action = "", $method = "post")
