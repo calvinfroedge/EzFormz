@@ -18,15 +18,15 @@ class EzFormz
 
 	private $_error_messages;
 
-    public function __construct()
-    {
+	public function __construct()
+	{
 		$this->_init_validators();
 		$this->_init_error_messages();
-	
+		
 		if(!self::$_instances) self::$_instances = array();
-    }
+	}
 
-	public function instance($name = false, $kill = false)
+	public static function instance($name = false, $kill = false)
 	{
 		if($kill) 
 		{
