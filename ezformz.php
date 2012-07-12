@@ -12,6 +12,8 @@ class EzFormz
 
 	private $_to_validate;
 
+	private static $_instances = array();
+
 	public $errors;
 
 	private $_error_messages;
@@ -21,6 +23,34 @@ class EzFormz
 		$this->_init_validators();
 		$this->_init_error_messages();
     }
+
+	public static function instanceStatic($name = false, $kill = false)
+	{
+		if($kill) 
+		{
+			unset(self::$_instances[$name]);
+			return;
+		}
+
+		if($name)
+		{
+			$instance = self::$_instances[$name] = new self;
+		}
+		else
+		{
+			$instance = self::$_instances[] = new self;
+		}
+
+		$instance->_init_validators();
+		$instance->_init_error_messages();
+
+		return $instance;
+	}
+
+	public function instance($name = false, $kill = false)
+	{
+		return self::instanceStatic($name, $kill);
+	}
 
 	public function open($action = "", $method = "post")
 	{
@@ -195,7 +225,7 @@ class EzFormz
 			unset($extra['rules']);
 		}
 		
-		if($label && $method !== 'submit' && $method !== 'label') {
+		if($label && $method !== 'submit' && $method !== 'label' && $method !== 'radio') {
 			$this->string .= $this->_add_label($name, $label);
 			unset($extra['label']);
 		}
@@ -244,7 +274,7 @@ class EzFormz
 			break;
 
 			case 'password':
-				$this->string .= $this->_add_password($name);
+				$this->string .= $this->_add_password($name, $extra);
 			break;
 
 			case 'date':
@@ -266,13 +296,28 @@ class EzFormz
 				$this->string .= $this->_add_checkbox($name, $extra);
 			break;
 
+			case 'radio':
+				$radio_label = ($label) ? $extra['label'] : '';
+				unset($extra['label']);
+				$this->string .= $this->_add_radio($name, $extra);
+			break;
+
+			case 'file':
+				$this->string .= $this->_add_file($name, $extra);
+			break;
+
 			case 'submit':
 				$this->string .= $this->_add_submit($label);
 			break;
 	
 			case 'heading':
-				$this->string .= $this->_add_heading($args[0]);
+				$this->string .= (isset($args[1])) ? $this->_add_heading($args[0], $args[1]) : $this->_add_heading($args[0]);
 			break;
+		}
+
+		if($label && $method === 'radio')
+		{
+			$this->string .= $this->_add_label($radio_label, $name);
 		}
 
 		if($method !== 'heading' && !isset($extra['multi']))
@@ -326,7 +371,7 @@ class EzFormz
 
     private function _add_password($name, $extra = array())
     {
-		return '<input type="password" class="password" name="'.$name.'" '.$this->_set_extra($extra).'/>';
+		return '<input type="password" name="'.$name.'" '.$this->_set_extra($extra).'/>';
     }
 
 	private function _add_date($name)
@@ -360,15 +405,25 @@ class EzFormz
 		return '<input type="checkbox" class="checkbox" name="'.$name.'" '.$this->_set_extra($extra).'/>';
 	}
 
+	private function _add_radio($name, $extra = array())
+	{
+		return '<input type="radio" class="radio" name="'.$name.'" '.$this->_set_extra($extra).'/>';
+	}
+
+	private function _add_file($name, $extra = array())
+	{
+		return '<input type="file" class="file" name="'.$name.'" '.$this->_set_extra($extra).'/>';
+	}
+
     private function _add_submit($label = false)
     {
 		$label = (!$label) ? "Submit" : $label;
 		return '<input type="submit" value="'.$label.'" />';
     }
 
-	private function _add_heading($text)
+	private function _add_heading($text, $level = 3)
 	{
-		return "<h3>" . $text . "</h3>";
+		return "<h$level>" . $text . "</h$level>";
 	}
 
 	public function close()
