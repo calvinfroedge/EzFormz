@@ -26,7 +26,7 @@ class EzFormz
 		if(!self::$_instances) self::$_instances = array();
     }
 
-	public function instance($name = false, $kill = true)
+	public function instance($name = false, $kill = false)
 	{
 		if($kill) 
 		{
