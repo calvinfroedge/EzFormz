@@ -20,10 +20,7 @@ class EzFormz
 
 	public function __construct()
 	{
-		$this->_init_validators();
-		$this->_init_error_messages();
-		
-		if(!self::$_instances) self::$_instances = array();
+		return $this->instance();
 	}
 
 	public static function instanceStatic($name = false, $kill = false)
