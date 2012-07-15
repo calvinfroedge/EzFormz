@@ -50,7 +50,7 @@ You can also pass callbacks. Callbacks work by providing a function, along with 
 		...other fields
 		->submit()
 	->close();
-</code</pre>
+</code></pre>
 
 ### Validation and Errors
 You can retrieve errors either from the public error property of the form object, using the error_list() method (which generates an unordered list of errors) or with error_json().
