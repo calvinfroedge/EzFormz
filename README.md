@@ -1,6 +1,4 @@
-# EzFormz - Cuz everything else is just too much freakin hassle.
-
-## EzFormz aims at simplifying how you work with forms.  Partly inspired by several form libraries I've worked with, My goal is to make it the simplest, most beautiful interface for working with forms in the PHP language.  I think you'll like it.
+## EzFormz goal is to make it be simplest, most beautiful method for working with forms in the PHP language.  It's also fast.  I think you'll like it.
 
 ### Basic Usage
 After including ezformz.php, you can get an instance either by:
