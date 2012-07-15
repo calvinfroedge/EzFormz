@@ -12,16 +12,19 @@ class EzFormz
 
 	private $_to_validate;
 
+	private $_validation_callbacks;
+
 	private static $_instances = array();
 
 	public $errors;
 
 	private $_error_messages;
 
-	public function __construct()
-	{
-		return $this->instance();
-	}
+    public function __construct()
+    {
+		$this->_init_validators();
+		$this->_init_error_messages();
+    }
 
 	public static function instanceStatic($name = false, $kill = false)
 	{
@@ -42,6 +45,7 @@ class EzFormz
 
 		$instance->_init_validators();
 		$instance->_init_error_messages();
+		$instance->_init_validation_callbacks();
 
 		return $instance;
 	}
@@ -75,6 +79,11 @@ class EzFormz
 		);
 	}
 
+	private function _init_validation_callbacks()
+	{
+		$this->_validation_callbacks = (object) array();
+	}
+
 	private function _get_message($item, $rule, $arg = NULL, $label = NULL)
 	{
 		if(isset($this->_error_messages[$rule]))
@@ -100,7 +109,7 @@ class EzFormz
  		return (is_null($s) OR strlen($s) === 0) ? FALSE : TRUE;
 	}
 
-	private function _validator_matches($s, $p)
+	private function _validator_matches($s, $p = false)
 	{
 		return ($s == $p) ? TRUE : FALSE;
 	}
@@ -176,8 +185,35 @@ class EzFormz
 				}
 			}
 
+			foreach($this->_validation_callbacks as $item=>$callbacks)
+			{
+				foreach($callbacks as $callback)
+				{
+					if(!isset($callback['function'], $callback['args'], $callback['assert'])) throw new Exception("A validator function, arguments and assert must be provided when using validation callbacks.");
+
+					$func = $callback['function'];
+					$args = $callback['args'];
+					$assert = $callback['assert'];
+
+					if($callback['object'])
+					{
+						$obj = $callback['object'];
+						$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array(array($obj, $func), $args) : $obj->$func($args);
+					}
+					else
+					{
+						$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array($func, $args) : $func($args);
+					}
+
+					if(!$res == $assert)
+					{
+						$this->errors[$item][] = $callback['error'];
+					}
+				}
+			}
+
 			//So we know this form has actually been submitted
-			++$submitted;
+			$submitted = 1;
 		}
 		
 		return (empty($this->errors) && $submitted > 0) ? TRUE : FALSE;
@@ -206,7 +242,7 @@ class EzFormz
 
 	public function __call($method, $args)
 	{
-		$name = $args[0];
+		$name = (isset($args[0])) ? $args[0] : false;
 		$extra = isset($args[1]) ? $args[1] : array();
 
 		if($method !== 'heading' && !isset($extra['multi']))
@@ -218,10 +254,18 @@ class EzFormz
 
 		$rules = (isset($extra['rules'])) ? $extra['rules'] : false;
 
+		$rules_callbacks = (isset($extra['rules_callback'])) ? $extra['rules_callback'] : false;
+
 		if($rules)
 		{
 			$this->_to_validate->$name = array('label' => $label, 'rules' => $rules);
 			unset($extra['rules']);
+		}
+
+		if($rules_callbacks)
+		{
+			$this->_validation_callbacks->$name = $rules_callbacks;
+			unset($extra['rules_callback']);
 		}
 		
 		if($label && $method !== 'submit' && $method !== 'label' && $method !== 'radio') {
@@ -306,7 +350,9 @@ class EzFormz
 			break;
 
 			case 'submit':
-				$this->string .= $this->_add_submit($label);
+				if($name && empty($extra)) $this->string .= $this->_add_submit($name);
+				if($name && !empty($extra)) $this->string .= $this->_add_submit($name, $extra);
+				if(!$name && empty($extra)) $this->string .= $this->_add_submit();
 			break;
 	
 			case 'heading':
@@ -414,10 +460,9 @@ class EzFormz
 		return '<input type="file" class="file" name="'.$name.'" '.$this->_set_extra($extra).'/>';
 	}
 
-    private function _add_submit($label = false)
+    private function _add_submit($name = 'submit', $extra = array('class' => 'submit', 'value' => 'Submit'))
     {
-		$label = (!$label) ? "Submit" : $label;
-		return '<input type="submit" value="'.$label.'" />';
+		return '<input type="submit" name="'.$name.'" '.$this->_set_extra($extra).' />';
     }
 
 	private function _add_heading($text, $level = 3)
