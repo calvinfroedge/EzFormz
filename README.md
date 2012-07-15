@@ -1,4 +1,4 @@
-## EzFormz goal is to make it be simplest, most beautiful method for working with forms in the PHP language.  It's also fast.  I think you'll like it.
+## EzFormz' goal is to be the simplest, most beautiful and straightforward method for working with forms in the PHP language.  It's also fast.  I think you'll like it.
 
 ### Basic Usage
 After including ezformz.php, you can get an instance either by:
