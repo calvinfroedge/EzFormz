@@ -16,7 +16,6 @@ $form = EzFormz::instanceStatic('optional-instance-name')
 	->close();
 </code></pre>
 
-### Methods
 EzFormz provides a one:one relationship between the HTML form fields and their arguments you already know and the methods used to generate them:
 <pre><code>
 ->text('name', array('label' => 'Your Name'))
