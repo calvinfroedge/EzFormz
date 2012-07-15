@@ -18,6 +18,54 @@ $form = EzFormz::instanceStatic('my_optional_instance_name')
 	->close();
 </code></pre>
 
+### Methods
+EzFormz provides a one:one relationship between the HTML form fields and their arguments you already know and the methods used to generate them:
+<pre><code>
+->text('name', array('label' => 'Your Name'))
+->select(
+	'gender',
+	array(
+		'label' => 'Your Gender',
+		'options' => array(
+			'M' => 'Male',
+			'F' => 'Female'
+		)
+	)
+)
+->checkbox(
+	'newsletter',
+	array(
+		'label' => 'Sign up for newsletter?',
+		'value' => 1
+	)
+)
+->textarea(
+	'comments'
+	array(
+		'label' => 'Your comments'
+	)
+)
+->file(
+	'upload'
+	array(
+		'label' => 'Your file'
+	)
+)
+</code>
+</pre>
+
+### Multi-Methods
+If you want multiple form elements to display on the same line, you can use a multi method.  The only difference in how your individual elements are constructed are that instead of being method calls in themselves, they are passed as arrays into the multi-method.
+<pre><code>
+->multi(
+	'text',
+	array(
+		array('first_name', array('label' => 'First name')),
+		array('last_name', array('label' => 'Last name'))
+	)
+)
+</code></pre>
+
 ### Rules and Callbacks
 EzFormz supports both validation rules as well as validation callbacks.  Validation rules are intended as simple rules like this:
 <pre><code>
