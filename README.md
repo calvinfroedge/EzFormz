@@ -9,7 +9,7 @@ After including ezformz.php, you can get an instance either by:
 You might want to use named instances if you are embedding multiple forms on a page, if you are reusing partials, or just for organizational / clarity reasons.
 
 <pre><code>
-$form = EzFormz::instanceStatic('my_optional_instance_name')
+$form = EzFormz::instanceStatic('optional-instance-name')
 	->open()
 	->text('my_field', array('label' => 'My Field', 'rules' => 'required|numeric'))
 	->submit('submit', array('label' => 'Submit'))
