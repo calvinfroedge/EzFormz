@@ -149,7 +149,6 @@ class EzFormz
 		{
 			//If the form hasn't been submitted we don't need to do all this
 			if(!isset($_POST[$item])) continue;
-			//
 
 			$rules = explode('|', $detail['rules']);
 			$arg = false;
@@ -184,36 +183,35 @@ class EzFormz
 					}
 				}
 			}
+			++$submitted;
+		}
 
-			foreach($this->_validation_callbacks as $item=>$callbacks)
+		foreach($this->_validation_callbacks as $callbacks)
+		{
+			foreach($callbacks as $callback)
 			{
-				foreach($callbacks as $callback)
+				if(!isset($callback['function'], $callback['args'], $callback['assert'])) throw new Exception("A validator function, arguments and assert must be provided when using validation callbacks.");
+
+				$func = $callback['function'];
+				$args = $callback['args'];
+				$assert = $callback['assert'];
+
+				if($callback['object'])
 				{
-					if(!isset($callback['function'], $callback['args'], $callback['assert'])) throw new Exception("A validator function, arguments and assert must be provided when using validation callbacks.");
+					$obj = $callback['object'];
+					$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array(array($obj, $func), $args) : $obj->$func($args);
+				}
+				else
+				{
+					$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array($func, $args) : $func($args);
+				}
 
-					$func = $callback['function'];
-					$args = $callback['args'];
-					$assert = $callback['assert'];
-
-					if($callback['object'])
-					{
-						$obj = $callback['object'];
-						$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array(array($obj, $func), $args) : $obj->$func($args);
-					}
-					else
-					{
-						$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array($func, $args) : $func($args);
-					}
-
-					if(!$res == $assert)
-					{
-						$this->errors[$item][] = $callback['error'];
-					}
+				if(!$res == $assert)
+				{
+					$this->errors[$item][] = $callback['error'];
 				}
 			}
-
-			//So we know this form has actually been submitted
-			$submitted = 1;
+			++$submitted;
 		}
 		
 		return (empty($this->errors) && $submitted > 0) ? TRUE : FALSE;
