@@ -34,18 +34,25 @@ class EzFormz
 			return;
 		}
 
-		if($name)
+		if(!isset(self::$_instances[$name]))
 		{
-			$instance = self::$_instances[$name] = new self;
+			if($name)
+			{
+				$instance = self::$_instances[$name] = new self;
+			}
+			else
+			{
+				$instance = self::$_instances[] = new self;
+			}
+
+			$instance->_init_validators();
+			$instance->_init_error_messages();
+			$instance->_init_validation_callbacks();
 		}
 		else
 		{
-			$instance = self::$_instances[] = new self;
+			$instance = self::$_instances[$name];
 		}
-
-		$instance->_init_validators();
-		$instance->_init_error_messages();
-		$instance->_init_validation_callbacks();
 
 		return $instance;
 	}
@@ -53,6 +60,11 @@ class EzFormz
 	public function instance($name = false, $kill = false)
 	{
 		return self::instanceStatic($name, $kill);
+	}
+
+	public function instances()
+	{
+		return self::$_instances;
 	}
 
 	public function open($action = "", $method = "post")
@@ -71,11 +83,11 @@ class EzFormz
 		$this->_error_messages = array(
 			'required' => '"{string}" is a required field.',
 			'password' => '"{string}" is not correct.',
-			'matches' => '"{string}" must match {arg}',
+			'matches' => '"{string}" must match {arg}.',
 			'numeric' => '"{string}" must be numeric.',
-			'regex' => '"{string}" must match pattern {arg}',
+			'regex' => '"{string}" must match pattern {arg}.',
 			'domain' => '"{string}" must match be a valid domain (example.com, example.com.au, etc.)"',
-			'email' => '"{string}" must be a valid email address'
+			'email' => '"{string}" must be a valid email address.'
 		);
 	}
 
@@ -111,7 +123,9 @@ class EzFormz
 
 	private function _validator_matches($s, $p = false)
 	{
-		return ($s == $p) ? TRUE : FALSE;
+		if(!isset($_POST[$p])) return FALSE;
+
+		return ($s == $_POST[$p]) ? TRUE : FALSE;
 	}
 
 	private function _validator_password($s, $p)
@@ -186,32 +200,36 @@ class EzFormz
 			++$submitted;
 		}
 
-		foreach($this->_validation_callbacks as $callbacks)
+		//Only run callbacks if no errors yet
+		if(empty($this->errors))
 		{
-			foreach($callbacks as $callback)
+			foreach($this->_validation_callbacks as $callbacks)
 			{
-				if(!isset($callback['function'], $callback['args'], $callback['assert'])) throw new Exception("A validator function, arguments and assert must be provided when using validation callbacks.");
-
-				$func = $callback['function'];
-				$args = $callback['args'];
-				$assert = $callback['assert'];
-
-				if($callback['object'])
+				foreach($callbacks as $callback)
 				{
-					$obj = $callback['object'];
-					$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array(array($obj, $func), $args) : $obj->$func($args);
-				}
-				else
-				{
-					$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array($func, $args) : $func($args);
-				}
+					if(!isset($callback['function'], $callback['args'], $callback['assert'])) throw new Exception("A validator function, arguments and assert must be provided when using validation callbacks.");
 
-				if(!$res == $assert)
-				{
-					$this->errors[$item][] = $callback['error'];
+					$func = $callback['function'];
+					$args = $callback['args'];
+					$assert = $callback['assert'];
+	
+					if($callback['object'])
+					{
+						$obj = $callback['object'];
+						$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array(array($obj, $func), $args) : $obj->$func($args);
+					}
+					else
+					{
+						$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array($func, $args) : $func($args);
+					}
+
+					if(!$res == $assert)
+					{
+						$this->errors[$item][] = $callback['error'];
+					}
 				}
+				++$submitted;
 			}
-			++$submitted;
 		}
 		
 		return (empty($this->errors) && $submitted > 0) ? TRUE : FALSE;
@@ -318,6 +336,10 @@ class EzFormz
 				$this->string .= $this->_add_password($name, $extra);
 			break;
 
+			case 'hidden':
+				$this->string .= $this->_add_hidden($name, $extra);
+			break;
+
 			case 'date':
 				$this->string .= $this->_add_date($name);
 			break;
@@ -415,6 +437,11 @@ class EzFormz
     private function _add_password($name, $extra = array())
     {
 		return '<input type="password" name="'.$name.'" '.$this->_set_extra($extra).'/>';
+    }
+
+    private function _add_hidden($name, $extra = array())
+    {
+		return '<input type="hidden" name="'.$name.'" '.$this->_set_extra($extra).'/>';
     }
 
 	private function _add_date($name)
