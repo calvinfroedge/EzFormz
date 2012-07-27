@@ -24,6 +24,7 @@ class EzFormz
     {
 		$this->_init_validators();
 		$this->_init_error_messages();
+		$this->_init_validation_callbacks();
     }
 
 	public static function instanceStatic($name = false, $kill = false)
@@ -44,14 +45,10 @@ class EzFormz
 			{
 				$instance = self::$_instances[] = new self;
 			}
-
-			$instance->_init_validators();
-			$instance->_init_error_messages();
-			$instance->_init_validation_callbacks();
 		}
 		else
 		{
-			$instance = self::$_instances[$name];
+			$instance = ($name) ? self::$_instances[$name] : new self;
 		}
 
 		return $instance;
@@ -67,9 +64,9 @@ class EzFormz
 		return self::$_instances;
 	}
 
-	public function open($action = "", $method = "post")
+	public function open($action = "", $method = "post", $extra = array())
 	{
-        $this->string .= '<form action="'.$action.'" method="'.$method.'" enctype="multipart/form-data">';
+        $this->string .= '<form action="'.$action.'" method="'.$method.'" enctype="multipart/form-data" '.$this->_set_extra($extra).'>';
 		return $this;
 	}
 
@@ -83,6 +80,7 @@ class EzFormz
 		$this->_error_messages = array(
 			'required' => '"{string}" is a required field.',
 			'password' => '"{string}" is not correct.',
+			'strong_password' => '"{string}" is not a strong password.  It must contain at least one uppercase letter, one lowercase letter, one number, and be 8 characters or greater',
 			'matches' => '"{string}" must match {arg}.',
 			'numeric' => '"{string}" must be numeric.',
 			'regex' => '"{string}" must match pattern {arg}.',
@@ -118,30 +116,36 @@ class EzFormz
 
 	private function _validator_required($s)
 	{
- 		return (is_null($s) OR strlen($s) === 0) ? FALSE : TRUE;
+ 		return (!(is_null($s) OR strlen($s) === 0));
 	}
 
 	private function _validator_matches($s, $p = false)
 	{
 		if(!isset($_POST[$p])) return FALSE;
 
-		return ($s == $_POST[$p]) ? TRUE : FALSE;
+		return ($s == $_POST[$p]);
 	}
 
 	private function _validator_password($s, $p)
 	{
-		return ($s == $p) ? TRUE : FALSE;
+		return ($s == $p);
+	}
+
+	private function _validator_strong_password($s)
+	{
+		//password must include uppercase and lowercase letters plus a digit, and must be 8 characters or greater
+		return $this->_validator_regex($s, '/^(?=^.*[a-z])(?=^.*[A-Z])(?=^.*[0-9])(\S{8,})(?<!\s)$/');
 	}
 
 	private function _validator_numeric($s)
 	{
-		return (is_numeric($s)) ? TRUE : FALSE;
+		return (is_numeric($s));
 	}
 
 	private function _validator_domain($s)
 	{
 		//Regex taken from shauninman.com.  Thanks dude!
-		return($this->_validator_regex($s, '/^([\w\d]{1,64}?\\.)+((a[cdefgilmnoqrstuwxz]|aero|arpa)|(b[abdefghijmnorstvwyz]|biz)|(c[acdfghiklmnorsuvxyz]|cat|com|coop)|d[ejkmoz]|(e[ceghrstu]|edu)|f[ijkmor]|(g[abdefghilmnpqrstuwy]|gov)|h[kmnrtu]|(i[delmnoqrst]|info|int)|(j[emop]|jobs)|k[eghimnprwyz]|l[abcikrstuvy]|(m[acdghklmnopqrstuvwxyz]|mil|mobi|museum)|(n[acefgilopruz]|name|net)|(om|org)|(p[aefghklmnrstwy]|pro)|qa|r[eouw]|s[abcdeghijklmnortvyz]|(t[cdfghjklmnoprtvwz]|travel)|u[agkmsyz]|v[aceginu]|w[fs]|y[etu]|z[amw])$/i')) ? TRUE : FALSE;
+		return($this->_validator_regex($s, '/^([\w\d]{1,64}?\\.)+((a[cdefgilmnoqrstuwxz]|aero|arpa)|(b[abdefghijmnorstvwyz]|biz)|(c[acdfghiklmnorsuvxyz]|cat|com|coop)|d[ejkmoz]|(e[ceghrstu]|edu)|f[ijkmor]|(g[abdefghilmnpqrstuwy]|gov)|h[kmnrtu]|(i[delmnoqrst]|info|int)|(j[emop]|jobs)|k[eghimnprwyz]|l[abcikrstuvy]|(m[acdghklmnopqrstuvwxyz]|mil|mobi|museum)|(n[acefgilopruz]|name|net)|(om|org)|(p[aefghklmnrstwy]|pro)|qa|r[eouw]|s[abcdeghijklmnortvyz]|(t[cdfghjklmnoprtvwz]|travel)|u[agkmsyz]|v[aceginu]|w[fs]|y[etu]|z[amw])$/i'));
 	}
 
 	private function _validator_email($s)
@@ -151,7 +155,7 @@ class EzFormz
 
 	private function _validator_regex($s, $p)
 	{
-		return (preg_match($p, $s) > 0) ? TRUE : FALSE;
+		return (preg_match($p, $s) > 0);
 	}
 
 	public function validate()
@@ -207,13 +211,12 @@ class EzFormz
 			{
 				foreach($callbacks as $callback)
 				{
-					if(!isset($callback['function'], $callback['args'], $callback['assert'])) throw new Exception("A validator function, arguments and assert must be provided when using validation callbacks.");
+					if(!isset($callback['function'], $callback['assert'])) throw new Exception("A validator function and assert must be provided when using validation callbacks.");
 
 					$func = $callback['function'];
-					$args = $callback['args'];
+					$args = (isset($callback['args'])) ? $callback['args'] : array();
 					$assert = $callback['assert'];
-	
-					if($callback['object'])
+					if(isset($callback['object']))
 					{
 						$obj = $callback['object'];
 						$res = (isset($callback['args_as_list']) && $callback['args_as_list'] === true) ? call_user_func_array(array($obj, $func), $args) : $obj->$func($args);
@@ -382,7 +385,7 @@ class EzFormz
 
 		if($label && $method === 'radio')
 		{
-			$this->string .= $this->_add_label($radio_label, $name);
+			$this->string .= $this->_add_label($name, $radio_label);
 		}
 
 		if($method !== 'heading' && !isset($extra['multi']))
