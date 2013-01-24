@@ -1,5 +1,7 @@
 <?php
 
+namespace EzFormz;
+
 class EzFormz
 {
     protected $string;
